@@ -1,73 +1,144 @@
-# Welcome to your Lovable project
+# **Visionary Captions**
 
-## Project info
+**Visionary Captions** is a **React + TypeScript** web application that lets users upload **images** or **sign-language videos** and view automatically generated **English captions**.  
+It acts as a modern, responsive **frontend UI** for a separate machine‑learning backend that performs image and sign‑language captioning.
 
-**URL**: https://lovable.dev/projects/371786da-65cd-48e2-9fee-f9b83da69373
+---
 
-## How can I edit this code?
+## ✨ **Features**
 
-There are several ways of editing your application.
+- **Upload media**: Select or drag‑and‑drop images and videos.  
+- **Instant preview**: See the uploaded media directly in the browser.  
+- **Caption generation**: Send files to a captioning API (image + sign language) and display the returned English captions.  
+- **Modern UI**: Built with **Vite**, **React**, **TypeScript**, **Tailwind CSS**, and **shadcn‑ui**.  
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/371786da-65cd-48e2-9fee-f9b83da69373) and start prompting.
+## 🧱 **Tech Stack**
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Framework:** React  
+- **Language:** TypeScript  
+- **Bundler / Dev Server:** Vite  
+- **Styling:** Tailwind CSS, PostCSS  
+- **UI Components:** shadcn‑ui + custom components  
+- **Configuration Files:** `vite.config.ts`, `tailwind.config.ts`, `postcss.config.js`, `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`  
 
-**Use your preferred IDE**
+> 🔎 **Note:** This repository is focused on the **frontend**.  
+> The captioning logic (image + sign language) should run in a **backend service** that exposes HTTP APIs.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 📂 **Project Structure**
 
-Follow these steps:
+visionary-captions/   
+├── public/ # Static assets     
+├── src/ # React + TypeScript source   
+├── index.html # Root HTML file     
+├── package.json     
+├── package-lock.json / bun.lockb     
+├── tailwind.config.ts     
+├── postcss.config.js     
+├── tsconfig.json    
+├── tsconfig.app.json      
+├── tsconfig.node.json      
+├── vite.config.ts   
+└── README.md    
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+**Example `src/` layout** (adapt to your repo):
 
-# Step 3: Install the necessary dependencies.
-npm i
+src/    
+├── components/ # Reusable UI components     
+├── pages/ # Main pages / routes    
+├── hooks/ # Custom React hooks      
+├── lib/ # API helpers, utilities    
+└── main.tsx # App entry point
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+
+
+---
+
+## 🚀 **Getting Started**
+
+### ✅ Prerequisites
+
+- **Node.js** (LTS recommended)  
+- **npm** (or bun/pnpm, depending on your setup)
+
+### 💻 Installation
+
+git clone https://github.com/Yashwanthvarakuti/visionary-captions.git
+cd visionary-captions
+
+npm install # or: bun install
+
+text
+
+### 🔐 Environment Variables
+
+Create a `.env` file in the project root and add:
+
+VITE_API_BASE_URL=https://your-backend-url.com
+
+text
+
+In React, access it as:
+
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
+text
+
+---
+
+## 🧑‍💻 **Development**
+
 npm run dev
-```
 
-**Edit a file directly in GitHub**
+text
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Open the printed URL (usually `http://localhost:5173/`) in your browser.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📦 **Build and Preview**
 
-## What technologies are used for this project?
+npm run build
+npm run preview
 
-This project is built with:
+text
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The optimized static files will be generated in the `dist/` directory.
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/371786da-65cd-48e2-9fee-f9b83da69373) and click on Share -> Publish.
+## 🌐 **Connecting to the Captioning Backend**
 
-## Can I connect a custom domain to my Lovable project?
+Expected backend endpoints (change to match your API):
 
-Yes, you can!
+- `POST /api/caption/image` – accepts an **image file** and returns a caption.  
+- `POST /api/caption/sign` – accepts a **sign‑language video** and returns a caption/translation.  
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+In your API helper (for example `src/lib/api.ts`):
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Read `VITE_API_BASE_URL`.  
+- Send a `FormData` object containing the uploaded file.  
+- Parse the JSON response and display the `caption` (or equivalent) field.
+
+---
+
+## 🚢 **Deployment**
+
+1. Run `npm run build`.  
+2. Deploy the `dist/` folder to Vercel, Netlify, GitHub Pages, or any static host.  
+3. Ensure `VITE_API_BASE_URL` points to the live backend and CORS is configured correctly.
+
+---
+
+## 🧭 **Roadmap**
+
+- Better loading states and error handling for long caption requests.  
+- Support for multiple caption suggestions per media item.  
+- History of processed images/videos and captions.  
+- Optional authentication and user‑specific caption collections.
+
+---
