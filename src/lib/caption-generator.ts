@@ -1,22 +1,25 @@
-import { pipeline } from "@huggingface/transformers";
+export async function generateCaption(imageFile: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('image', imageFile);
 
-let captioner: any = null;
-
-export async function initializeCaptioner() {
-  if (captioner) return captioner;
-  
-  captioner = await pipeline(
-    "image-to-text",
-    "Xenova/vit-gpt2-image-captioning"
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-caption`,
+    {
+      method: 'POST',
+      body: formData,
+    }
   );
-  
-  return captioner;
-}
 
-export async function generateCaption(imageUrl: string): Promise<string> {
-  const model = await initializeCaptioner();
-  const result = await model(imageUrl);
-  return result[0].generated_text;
+  if (!response.ok) {
+    const errorData = await response.json();
+    if (errorData.isLoading) {
+      throw new Error('Model is loading, please try again in a moment');
+    }
+    throw new Error(errorData.error || 'Failed to generate caption');
+  }
+
+  const data = await response.json();
+  return data.caption;
 }
 
 export async function extractVideoFrame(videoFile: File): Promise<string> {
