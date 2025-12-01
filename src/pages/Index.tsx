@@ -22,20 +22,24 @@ const Index = () => {
       const isVideoFile = file.type.startsWith("video/");
       setIsVideo(isVideoFile);
 
-      let imageUrl: string;
+      let fileToProcess: File = file;
 
       if (isVideoFile) {
         setLoadingMessage("Extracting frame from video...");
         const videoUrl = URL.createObjectURL(file);
         setMediaUrl(videoUrl);
-        imageUrl = await extractVideoFrame(file);
+        
+        // Extract frame and convert to File
+        const frameDataUrl = await extractVideoFrame(file);
+        const blob = await (await fetch(frameDataUrl)).blob();
+        fileToProcess = new File([blob], "video-frame.jpg", { type: "image/jpeg" });
       } else {
-        imageUrl = URL.createObjectURL(file);
+        const imageUrl = URL.createObjectURL(file);
         setMediaUrl(imageUrl);
       }
 
       setLoadingMessage("Generating caption with AI...");
-      const generatedCaption = await generateCaption(imageUrl);
+      const generatedCaption = await generateCaption(fileToProcess);
       setCaption(generatedCaption);
 
       toast({
@@ -44,9 +48,10 @@ const Index = () => {
       });
     } catch (error) {
       console.error("Error processing file:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate caption. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to generate caption. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
