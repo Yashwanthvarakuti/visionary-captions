@@ -43,9 +43,9 @@ serve(async (req) => {
     const imageBuffer = await imageFile.arrayBuffer();
     
     // Use Hugging Face Inference API for image captioning
-    // Using Salesforce BLIP model which is optimized for image captioning
+    // Using ViT-GPT2 model which is actively maintained for image captioning
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large',
+      'https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning',
       {
         method: 'POST',
         headers: {
