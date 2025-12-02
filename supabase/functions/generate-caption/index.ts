@@ -27,9 +27,9 @@ serve(async (req) => {
 
     console.log('Processing image:', imageFile.name, imageFile.type, imageFile.size);
 
-    const hfApiKey = Deno.env.get('HUGGING_FACE_API_KEY');
-    if (!hfApiKey) {
-      console.error('HUGGING_FACE_API_KEY not configured');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      console.error('LOVABLE_API_KEY not configured');
       return new Response(
         JSON.stringify({ error: 'API key not configured' }), 
         { 
@@ -39,36 +39,67 @@ serve(async (req) => {
       );
     }
 
-    // Convert File to ArrayBuffer
+    // Convert File to base64
     const imageBuffer = await imageFile.arrayBuffer();
+    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    const mimeType = imageFile.type || 'image/jpeg';
+    const dataUrl = `data:${mimeType};base64,${base64Image}`;
     
-    // Use Hugging Face Inference API for image captioning
-    // Using ViT-GPT2 model which is actively maintained for image captioning
+    // Use Lovable AI (Gemini 2.5 Flash) for image captioning
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning',
+      'https://ai.gateway.lovable.dev/v1/chat/completions',
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${hfApiKey}`,
-          'Content-Type': imageFile.type || 'application/octet-stream',
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
         },
-        body: imageBuffer,
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Describe this image in a single, concise sentence. Focus on the main subjects, actions, and setting.'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: dataUrl
+                  }
+                }
+              ]
+            }
+          ]
+        }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Hugging Face API error:', response.status, errorText);
+      console.error('Lovable AI error:', response.status, errorText);
       
-      // Check if model is loading
-      if (response.status === 503) {
+      if (response.status === 429) {
         return new Response(
           JSON.stringify({ 
-            error: 'Model is loading, please try again in a moment',
-            isLoading: true 
+            error: 'Rate limit exceeded, please try again in a moment'
           }), 
           { 
-            status: 503,
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Payment required, please add credits to your Lovable workspace'
+          }), 
+          { 
+            status: 402,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
@@ -90,7 +121,7 @@ serve(async (req) => {
     console.log('Caption generated:', result);
     
     // Extract caption from the response
-    const caption = result[0]?.generated_text || 'No caption generated';
+    const caption = result.choices?.[0]?.message?.content || 'No caption generated';
 
     return new Response(
       JSON.stringify({ caption }),
