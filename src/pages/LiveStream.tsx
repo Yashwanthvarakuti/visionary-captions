@@ -1,32 +1,22 @@
-import { useEffect } from 'react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
-import { Video, VideoOff, Wifi, WifiOff, ArrowLeft, AlertTriangle, Eye, Hand, MessageSquare } from 'lucide-react';
-
-const WS_URL = 'ws://localhost:8000/stream';
+import { Video, VideoOff, ArrowLeft, AlertTriangle, Eye, Hand, MessageSquare, Loader2 } from 'lucide-react';
 
 export default function LiveStream() {
   const {
-    isConnected,
     isStreaming,
+    isAnalyzing,
     error,
     latestResponse,
     videoRef,
     canvasRef,
-    connect,
-    disconnect,
     startStreaming,
     stopStreaming,
-  } = useLiveStream({ wsUrl: WS_URL, frameRate: 5 });
-
-  useEffect(() => {
-    connect();
-    return () => disconnect();
-  }, [connect, disconnect]);
+  } = useLiveStream({ intervalMs: 2500 }); // Analyze every 2.5 seconds
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -43,13 +33,14 @@ export default function LiveStream() {
           </div>
           
           <div className="flex items-center gap-2">
-            {isConnected ? (
-              <Badge variant="default" className="bg-green-500">
-                <Wifi className="h-3 w-3 mr-1" /> Connected
+            {isAnalyzing && (
+              <Badge variant="secondary" className="animate-pulse">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Analyzing...
               </Badge>
-            ) : (
-              <Badge variant="destructive">
-                <WifiOff className="h-3 w-3 mr-1" /> Disconnected
+            )}
+            {isStreaming && !isAnalyzing && (
+              <Badge variant="default" className="bg-green-500">
+                <Video className="h-3 w-3 mr-1" /> Live
               </Badge>
             )}
           </div>
@@ -83,8 +74,17 @@ export default function LiveStream() {
                 <canvas ref={canvasRef} className="hidden" />
                 
                 {!isStreaming && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/80 gap-4">
                     <VideoOff className="h-16 w-16 text-muted-foreground" />
+                    <p className="text-muted-foreground text-sm">Camera is off</p>
+                  </div>
+                )}
+
+                {isAnalyzing && (
+                  <div className="absolute top-3 right-3">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    </div>
                   </div>
                 )}
               </div>
@@ -92,12 +92,11 @@ export default function LiveStream() {
               <div className="flex gap-3 mt-4">
                 {!isStreaming ? (
                   <Button 
-                    onClick={startStreaming} 
-                    disabled={!isConnected}
+                    onClick={startStreaming}
                     className="flex-1"
                   >
                     <Video className="h-4 w-4 mr-2" />
-                    Start Streaming
+                    Start Live Analysis
                   </Button>
                 ) : (
                   <Button 
@@ -106,14 +105,7 @@ export default function LiveStream() {
                     className="flex-1"
                   >
                     <VideoOff className="h-4 w-4 mr-2" />
-                    Stop Streaming
-                  </Button>
-                )}
-                
-                {!isConnected && (
-                  <Button onClick={connect} variant="outline">
-                    <Wifi className="h-4 w-4 mr-2" />
-                    Reconnect
+                    Stop
                   </Button>
                 )}
               </div>
@@ -132,7 +124,7 @@ export default function LiveStream() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-foreground">
-                  {latestResponse?.caption || 'Waiting for stream...'}
+                  {latestResponse?.caption || 'Start streaming to see captions...'}
                 </p>
               </CardContent>
             </Card>
@@ -202,13 +194,13 @@ export default function LiveStream() {
           </div>
         </div>
 
-        {/* Connection Info */}
+        {/* Info */}
         <Card className="bg-muted/50">
           <CardContent className="py-3">
             <p className="text-xs text-muted-foreground text-center">
-              Connected to: <code className="bg-muted px-1 rounded">{WS_URL}</code> • 
-              Frame rate: 5 FPS • 
-              Format: Base64 JPEG
+              Powered by Lovable AI (Gemini 2.5 Flash) • 
+              Analyzes frames every 2.5 seconds • 
+              No Python server required
             </p>
           </CardContent>
         </Card>

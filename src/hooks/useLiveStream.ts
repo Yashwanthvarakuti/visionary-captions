@@ -12,80 +12,25 @@ export interface Signal {
 
 export interface StreamResponse {
   caption?: string;
-  sign_language?: string;
+  sign_language?: string | null;
   objects?: DetectedObject[];
   signals?: Signal[];
 }
 
 interface UseLiveStreamOptions {
-  wsUrl: string;
-  frameRate?: number; // frames per second
+  intervalMs?: number; // milliseconds between frame analysis
 }
 
-export function useLiveStream({ wsUrl, frameRate = 5 }: UseLiveStreamOptions) {
-  const [isConnected, setIsConnected] = useState(false);
+export function useLiveStream({ intervalMs = 2000 }: UseLiveStreamOptions = {}) {
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [latestResponse, setLatestResponse] = useState<StreamResponse | null>(null);
   
-  const wsRef = useRef<WebSocket | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('WebSocket already connected');
-      return;
-    }
-
-    try {
-      console.log('Connecting to WebSocket:', wsUrl);
-      const ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-        setIsConnected(true);
-        setError(null);
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        setIsConnected(false);
-        setIsStreaming(false);
-      };
-
-      ws.onerror = (event) => {
-        console.error('WebSocket error:', event);
-        setError('Failed to connect to Python server. Make sure it is running.');
-        setIsConnected(false);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data: StreamResponse = JSON.parse(event.data);
-          console.log('Received:', data);
-          setLatestResponse(data);
-        } catch (e) {
-          console.error('Failed to parse response:', e);
-        }
-      };
-
-      wsRef.current = ws;
-    } catch (e) {
-      console.error('Connection error:', e);
-      setError('Failed to create WebSocket connection');
-    }
-  }, [wsUrl]);
-
-  const disconnect = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setIsConnected(false);
-  }, []);
 
   const startCamera = useCallback(async () => {
     try {
@@ -101,6 +46,7 @@ export function useLiveStream({ wsUrl, frameRate = 5 }: UseLiveStreamOptions) {
         await videoRef.current.play();
       }
       
+      setError(null);
       return true;
     } catch (e) {
       console.error('Camera access error:', e);
@@ -133,29 +79,62 @@ export function useLiveStream({ wsUrl, frameRate = 5 }: UseLiveStreamOptions) {
     
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    return canvas.toDataURL('image/jpeg', 0.7);
+    return canvas.toDataURL('image/jpeg', 0.6);
+  }, []);
+
+  const analyzeFrame = useCallback(async (frame: string) => {
+    try {
+      setIsAnalyzing(true);
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-frame`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ frame }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to analyze frame');
+      }
+
+      const data = await response.json();
+      setLatestResponse(data);
+      setError(null);
+    } catch (e) {
+      console.error('Frame analysis error:', e);
+      setError(e instanceof Error ? e.message : 'Failed to analyze frame');
+    } finally {
+      setIsAnalyzing(false);
+    }
   }, []);
 
   const startStreaming = useCallback(async () => {
-    if (!isConnected) {
-      setError('Not connected to server');
-      return;
-    }
-
     const cameraStarted = await startCamera();
     if (!cameraStarted) return;
 
     setIsStreaming(true);
+    setError(null);
     
-    const intervalMs = 1000 / frameRate;
+    // Initial frame capture after a short delay for camera to initialize
+    setTimeout(() => {
+      const frame = captureFrame();
+      if (frame) {
+        analyzeFrame(frame);
+      }
+    }, 500);
     
     streamIntervalRef.current = setInterval(() => {
       const frame = captureFrame();
-      if (frame && wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ frame }));
+      if (frame) {
+        analyzeFrame(frame);
       }
     }, intervalMs);
-  }, [isConnected, startCamera, captureFrame, frameRate]);
+  }, [startCamera, captureFrame, analyzeFrame, intervalMs]);
 
   const stopStreaming = useCallback(() => {
     if (streamIntervalRef.current) {
@@ -164,25 +143,23 @@ export function useLiveStream({ wsUrl, frameRate = 5 }: UseLiveStreamOptions) {
     }
     stopCamera();
     setIsStreaming(false);
+    setIsAnalyzing(false);
   }, [stopCamera]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopStreaming();
-      disconnect();
     };
-  }, [stopStreaming, disconnect]);
+  }, [stopStreaming]);
 
   return {
-    isConnected,
     isStreaming,
+    isAnalyzing,
     error,
     latestResponse,
     videoRef,
     canvasRef,
-    connect,
-    disconnect,
     startStreaming,
     stopStreaming,
   };
