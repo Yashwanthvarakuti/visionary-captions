@@ -2,3 +2,6 @@ project_id = "occdebvcirockaiqebrq"
 
 [functions.generate-caption]
 verify_jwt = false
+
+[functions.analyze-frame]
+verify_jwt = false
