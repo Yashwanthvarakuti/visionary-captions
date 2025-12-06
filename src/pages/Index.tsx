@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Brain, Loader2 } from "lucide-react";
+import { Brain, Loader2, Video } from "lucide-react";
+import { Link } from "react-router-dom";
 import { UploadZone } from "@/components/UploadZone";
 import { CaptionResult } from "@/components/CaptionResult";
 import { generateCaption, extractVideoFrame } from "@/lib/caption-generator";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -65,18 +67,26 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/50 sticky top-0 z-50">
         <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 p-2.5 rounded-xl border border-primary/20">
-              <Brain className="w-7 h-7 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-2.5 rounded-xl border border-primary/20">
+                <Brain className="w-7 h-7 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold gradient-text">
+                  VisionCaption AI
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Powered by deep learning vision models
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold gradient-text">
-                VisionCaption AI
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Powered by deep learning vision models
-              </p>
-            </div>
+            <Link to="/live">
+              <Button variant="outline" className="gap-2">
+                <Video className="h-4 w-4" />
+                Live Stream
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
