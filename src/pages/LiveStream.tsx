@@ -1,22 +1,43 @@
 import { useLiveStream } from '@/hooks/useLiveStream';
+import { useAudioTranscription } from '@/hooks/useAudioTranscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
-import { Video, VideoOff, ArrowLeft, AlertTriangle, Eye, Hand, MessageSquare, Loader2 } from 'lucide-react';
+import { Video, VideoOff, ArrowLeft, AlertTriangle, Eye, Hand, MessageSquare, Loader2, Mic, MicOff, Languages } from 'lucide-react';
 
 export default function LiveStream() {
   const {
     isStreaming,
     isAnalyzing,
-    error,
+    error: videoError,
     latestResponse,
     videoRef,
     canvasRef,
     startStreaming,
     stopStreaming,
-  } = useLiveStream({ intervalMs: 8000 }); // Analyze every 8 seconds to avoid rate limits
+  } = useLiveStream({ intervalMs: 8000 });
+
+  const {
+    isListening,
+    isTranscribing,
+    error: audioError,
+    latestTranscription,
+    startListening,
+    stopListening,
+  } = useAudioTranscription({ intervalMs: 8000 });
+
+  const error = videoError || audioError;
+
+  const handleStartAll = async () => {
+    await Promise.all([startStreaming(), startListening()]);
+  };
+
+  const handleStopAll = () => {
+    stopStreaming();
+    stopListening();
+  };
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -33,14 +54,19 @@ export default function LiveStream() {
           </div>
           
           <div className="flex items-center gap-2">
-            {isAnalyzing && (
+            {(isAnalyzing || isTranscribing) && (
               <Badge variant="secondary" className="animate-pulse">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Analyzing...
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Processing...
               </Badge>
             )}
             {isStreaming && !isAnalyzing && (
               <Badge variant="default" className="bg-green-500">
-                <Video className="h-3 w-3 mr-1" /> Live
+                <Video className="h-3 w-3 mr-1" /> Video
+              </Badge>
+            )}
+            {isListening && !isTranscribing && (
+              <Badge variant="default" className="bg-blue-500">
+                <Mic className="h-3 w-3 mr-1" /> Audio
               </Badge>
             )}
           </div>
@@ -90,9 +116,9 @@ export default function LiveStream() {
               </div>
               
               <div className="flex gap-3 mt-4">
-                {!isStreaming ? (
+                {!isStreaming && !isListening ? (
                   <Button 
-                    onClick={startStreaming}
+                    onClick={handleStartAll}
                     className="flex-1"
                   >
                     <Video className="h-4 w-4 mr-2" />
@@ -100,26 +126,81 @@ export default function LiveStream() {
                   </Button>
                 ) : (
                   <Button 
-                    onClick={stopStreaming} 
+                    onClick={handleStopAll} 
                     variant="destructive"
                     className="flex-1"
                   >
                     <VideoOff className="h-4 w-4 mr-2" />
-                    Stop
+                    Stop All
                   </Button>
                 )}
+              </div>
+
+              {/* Individual controls */}
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={isStreaming ? stopStreaming : startStreaming}
+                  className="flex-1"
+                >
+                  {isStreaming ? <VideoOff className="h-3 w-3 mr-1" /> : <Video className="h-3 w-3 mr-1" />}
+                  {isStreaming ? 'Stop Video' : 'Start Video'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={isListening ? stopListening : startListening}
+                  className="flex-1"
+                >
+                  {isListening ? <MicOff className="h-3 w-3 mr-1" /> : <Mic className="h-3 w-3 mr-1" />}
+                  {isListening ? 'Stop Audio' : 'Start Audio'}
+                </Button>
               </div>
             </CardContent>
           </Card>
 
           {/* Results Panel */}
           <div className="space-y-4">
-            {/* Caption */}
+            {/* Audio Transcription */}
+            <Card className="border-blue-500/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Languages className="h-4 w-4 text-blue-500" />
+                  Audio Caption (English)
+                  {isTranscribing && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {latestTranscription?.english_text ? (
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-foreground">
+                      {latestTranscription.english_text}
+                    </p>
+                    {latestTranscription.language && latestTranscription.language !== 'English' && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Original ({latestTranscription.language}):</span>{' '}
+                        {latestTranscription.original_text}
+                      </div>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      {latestTranscription.language} • {Math.round(latestTranscription.confidence * 100)}% confidence
+                    </Badge>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {isListening ? 'Listening for speech...' : 'Start audio to see captions...'}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Visual Caption */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <MessageSquare className="h-4 w-4" />
-                  Caption
+                  Visual Caption
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -199,8 +280,8 @@ export default function LiveStream() {
           <CardContent className="py-3">
             <p className="text-xs text-muted-foreground text-center">
               Powered by Lovable AI (Gemini 2.5 Flash) • 
-              Analyzes frames every 2.5 seconds • 
-              No Python server required
+              Video & Audio analysis every 8 seconds • 
+              Auto-translates any language to English
             </p>
           </CardContent>
         </Card>
