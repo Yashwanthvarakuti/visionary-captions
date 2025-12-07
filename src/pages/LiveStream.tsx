@@ -17,7 +17,7 @@ export default function LiveStream() {
     canvasRef,
     startStreaming,
     stopStreaming,
-  } = useLiveStream({ intervalMs: 15000 }); // 15 seconds to avoid rate limits
+  } = useLiveStream({ intervalMs: 20000 }); // 20 seconds to avoid rate limits
 
   const {
     isListening,
@@ -26,15 +26,15 @@ export default function LiveStream() {
     latestTranscription,
     startListening,
     stopListening,
-  } = useAudioTranscription({ intervalMs: 15000 }); // 15 seconds to avoid rate limits
+  } = useAudioTranscription({ intervalMs: 20000 }); // 20 seconds to avoid rate limits
 
   const error = videoError || audioError;
 
   const handleStartAll = async () => {
     // Start video first
     await startStreaming();
-    // Stagger audio by 7.5 seconds to avoid simultaneous API calls
-    setTimeout(() => startListening(), 7500);
+    // Stagger audio by 12 seconds to ensure no API call overlap (video at 0s, audio at 12s, video at 20s, audio at 32s, etc.)
+    setTimeout(() => startListening(), 12000);
   };
 
   const handleStopAll = () => {
