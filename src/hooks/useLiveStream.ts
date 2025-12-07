@@ -99,6 +99,12 @@ export function useLiveStream({ intervalMs = 2000 }: UseLiveStreamOptions = {}) 
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 429) {
+          setError('Rate limit reached. Waiting before next analysis...');
+          // Wait extra time before next request
+          await new Promise(resolve => setTimeout(resolve, 10000));
+          return;
+        }
         throw new Error(errorData.error || 'Failed to analyze frame');
       }
 

@@ -16,7 +16,7 @@ export default function LiveStream() {
     canvasRef,
     startStreaming,
     stopStreaming,
-  } = useLiveStream({ intervalMs: 5000 }); // Analyze every 5 seconds to avoid rate limits
+  } = useLiveStream({ intervalMs: 8000 }); // Analyze every 8 seconds to avoid rate limits
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
