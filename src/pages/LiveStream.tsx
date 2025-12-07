@@ -17,7 +17,7 @@ export default function LiveStream() {
     canvasRef,
     startStreaming,
     stopStreaming,
-  } = useLiveStream({ intervalMs: 8000 });
+  } = useLiveStream({ intervalMs: 15000 }); // 15 seconds to avoid rate limits
 
   const {
     isListening,
@@ -26,12 +26,15 @@ export default function LiveStream() {
     latestTranscription,
     startListening,
     stopListening,
-  } = useAudioTranscription({ intervalMs: 8000 });
+  } = useAudioTranscription({ intervalMs: 15000 }); // 15 seconds to avoid rate limits
 
   const error = videoError || audioError;
 
   const handleStartAll = async () => {
-    await Promise.all([startStreaming(), startListening()]);
+    // Start video first
+    await startStreaming();
+    // Stagger audio by 7.5 seconds to avoid simultaneous API calls
+    setTimeout(() => startListening(), 7500);
   };
 
   const handleStopAll = () => {
