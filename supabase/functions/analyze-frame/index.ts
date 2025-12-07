@@ -46,16 +46,23 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `Analyze this image and respond with ONLY a JSON object (no markdown, no code blocks) in this exact format:
+                text: `You are an expert in sign language recognition and visual scene analysis. Analyze this image carefully.
+
+IMPORTANT: Pay special attention to hand positions and gestures. Look for:
+- American Sign Language (ASL) hand shapes and movements
+- Common gestures like thumbs up, peace sign, waving, pointing
+- Any hand configurations that could be sign language letters or words
+
+Respond with ONLY a JSON object (no markdown, no code blocks) in this exact format:
 {
-  "caption": "A brief description of what's happening in the scene",
-  "sign_language": "If someone is making hand gestures that look like sign language, describe what they might mean. Otherwise use null",
+  "caption": "A detailed description of what's happening in the scene",
+  "sign_language": "If you see ANY hand gestures, describe them. For sign language: identify the sign if possible (e.g., 'ASL letter A', 'Hello sign', 'I love you sign'). For other gestures: describe them (e.g., 'thumbs up', 'peace sign', 'waving'). If hands are visible but no clear gesture, say 'Hands visible, no clear sign'. Use null ONLY if no hands are visible at all.",
   "objects": [{"label": "object name", "confidence": 0.95}],
   "signals": [{"type": "alert type", "message": "description"}]
 }
 
-For objects: list the main objects/people you can see with confidence scores (0-1).
-For signals: note any important activities like "motion detected", "person waving", "thumbs up gesture", etc. If nothing notable, use an empty array.`
+For objects: list ALL visible objects/people with confidence scores (0-1).
+For signals: note activities like "hand raised", "person gesturing", "movement detected", etc.`
               },
               {
                 type: 'image_url',
