@@ -5,6 +5,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Validation constants
+const MAX_AUDIO_BASE64_LENGTH = 20 * 1024 * 1024; // ~20MB base64 string limit
+
+function isValidAudioBase64(str: string): boolean {
+  if (!str || typeof str !== 'string') return false;
+  if (str.length > MAX_AUDIO_BASE64_LENGTH) return false;
+  
+  // Check if it starts with expected data URL prefix for audio
+  if (!str.startsWith('data:audio/')) return false;
+  
+  // Basic format validation
+  const parts = str.split(',');
+  if (parts.length !== 2) return false;
+  
+  const header = parts[0];
+  if (!header.includes('base64')) return false;
+  
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,6 +36,15 @@ serve(async (req) => {
     if (!audio) {
       return new Response(
         JSON.stringify({ error: 'No audio provided' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate audio format
+    if (!isValidAudioBase64(audio)) {
+      console.error('Invalid audio format received');
+      return new Response(
+        JSON.stringify({ error: 'Invalid audio format. Expected base64-encoded audio data URL' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -138,9 +167,8 @@ If the audio is silent, unclear, or has no speech, respond with:
 
   } catch (error) {
     console.error('Error in transcribe-audio:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

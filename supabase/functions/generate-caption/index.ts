@@ -5,6 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Allowed MIME types for image uploads
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -18,6 +22,30 @@ serve(async (req) => {
     if (!imageFile) {
       return new Response(
         JSON.stringify({ error: 'No image file provided' }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate file type
+    if (!ALLOWED_MIME_TYPES.includes(imageFile.type)) {
+      console.error('Invalid file type:', imageFile.type);
+      return new Response(
+        JSON.stringify({ error: 'Invalid file type. Allowed types: JPEG, PNG, GIF, WebP' }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate file size
+    if (imageFile.size > MAX_FILE_SIZE) {
+      console.error('File too large:', imageFile.size);
+      return new Response(
+        JSON.stringify({ error: 'File too large. Maximum size is 10MB' }), 
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -42,7 +70,7 @@ serve(async (req) => {
     // Convert File to base64
     const imageBuffer = await imageFile.arrayBuffer();
     const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-    const mimeType = imageFile.type || 'image/jpeg';
+    const mimeType = imageFile.type;
     const dataUrl = `data:${mimeType};base64,${base64Image}`;
     
     // Use Lovable AI (Gemini 2.5 Flash) for image captioning
@@ -107,8 +135,7 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to generate caption',
-          details: errorText 
+          error: 'Failed to generate caption'
         }), 
         { 
           status: response.status,
@@ -118,7 +145,7 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    console.log('Caption generated:', result);
+    console.log('Caption generated successfully');
     
     // Extract caption from the response
     const caption = result.choices?.[0]?.message?.content || 'No caption generated';
@@ -132,8 +159,7 @@ serve(async (req) => {
     console.error('Error in generate-caption function:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'An unexpected error occurred',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'An unexpected error occurred'
       }),
       { 
         status: 500,

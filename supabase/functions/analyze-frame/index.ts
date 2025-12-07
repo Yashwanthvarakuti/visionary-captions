@@ -5,6 +5,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Validation constants
+const MAX_BASE64_LENGTH = 15 * 1024 * 1024; // ~15MB base64 string limit
+
+function isValidBase64DataUrl(str: string): boolean {
+  if (!str || typeof str !== 'string') return false;
+  if (str.length > MAX_BASE64_LENGTH) return false;
+  
+  // Check if it starts with expected data URL prefix
+  if (!str.startsWith('data:image/')) return false;
+  
+  // Basic format validation
+  const parts = str.split(',');
+  if (parts.length !== 2) return false;
+  
+  const header = parts[0];
+  if (!header.includes('base64')) return false;
+  
+  return true;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,6 +37,15 @@ serve(async (req) => {
     if (!frame) {
       return new Response(
         JSON.stringify({ error: 'No frame provided' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate frame format
+    if (!isValidBase64DataUrl(frame)) {
+      console.error('Invalid frame format received');
+      return new Response(
+        JSON.stringify({ error: 'Invalid frame format. Expected base64-encoded image data URL' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -140,9 +169,8 @@ For signals: note activities like "hand raised", "person gesturing", "movement d
 
   } catch (error) {
     console.error('Error in analyze-frame:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
